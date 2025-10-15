@@ -6,7 +6,7 @@ const games = [
         title: '여주고테트리스',
         student: '테스트',
         description: '생성형 인공지능을 활용하여 코드 작성',
-        externalLink: 'https://shooting-game.kimyounghee.repl.co',
+        externalLink: 'https://claude.ai/public/artifacts/aba3f9cb-0e83-4a75-a29c-f017524b6d7b',
         isPython: true,
         folder: ''
     },
