@@ -3,10 +3,12 @@
 const games = [
     {
         id: 1,
-        title: '게임 제목 1',
-        student: '학생 이름',
-        description: '게임에 대한 간단한 설명이 들어갑니다.',
-        folder: 'game1'
+        title: '여주고테트리스',
+        student: '테스트',
+        description: '생성형 인공지능을 활용하여 코드 작성',
+        externalLink: 'https://shooting-game.kimyounghee.repl.co',
+        isPython: true,
+        folder: ''
     },
     {
         id: 2,
