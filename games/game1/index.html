@@ -1,1 +1,97 @@
-<iframe src="https://claude.site/public/artifacts/aba3f9cb-0e83-4a75-a29c-f017524b6d7b/embed" title="Claude Artifact" width="100%" height="600" frameborder="0" allow="clipboard-write" allowfullscreen></iframe>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Tetris - 80's Edition</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="game-wrapper">
+            <header class="game-header">
+                <h1 class="neon-title">TETRIS</h1>
+                <p class="subtitle">80's RETRO EDITION</p>
+            </header>
+
+            <div class="game-container">
+                <!-- 왼쪽 패널: 점수 및 레벨 정보 -->
+                <div class="side-panel left-panel">
+                    <div class="info-box">
+                        <h3>SCORE</h3>
+                        <div class="score-value" id="score">0</div>
+                    </div>
+                    <div class="info-box">
+                        <h3>LEVEL</h3>
+                        <div class="level-value" id="level">1</div>
+                    </div>
+                    <div class="info-box">
+                        <h3>LINES</h3>
+                        <div class="lines-value" id="lines">0</div>
+                    </div>
+                    <div class="info-box">
+                        <h3>HIGH SCORE</h3>
+                        <div class="highscore-value" id="highscore">0</div>
+                    </div>
+                </div>
+
+                <!-- 중앙: 게임 보드 -->
+                <div class="game-board-container">
+                    <canvas id="gameCanvas" width="300" height="600"></canvas>
+                    <div class="game-overlay" id="gameOverlay">
+                        <div class="overlay-content">
+                            <h2 id="overlayTitle">PRESS SPACE TO START</h2>
+                            <p id="overlayMessage">Use Arrow Keys to Move<br>Space to Rotate<br>ESC to Pause</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 오른쪽 패널: 다음 블록 미리보기 -->
+                <div class="side-panel right-panel">
+                    <div class="info-box">
+                        <h3>NEXT</h3>
+                        <canvas id="nextCanvas" width="120" height="120"></canvas>
+                    </div>
+                    <div class="controls-info">
+                        <h3>CONTROLS</h3>
+                        <div class="control-item">
+                            <span>←→</span>
+                            <span>Move</span>
+                        </div>
+                        <div class="control-item">
+                            <span>↓</span>
+                            <span>Soft Drop</span>
+                        </div>
+                        <div class="control-item">
+                            <span>SPACE</span>
+                            <span>Rotate</span>
+                        </div>
+                        <div class="control-item">
+                            <span>ESC</span>
+                            <span>Pause</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 모바일 터치 컨트롤 -->
+            <div class="mobile-controls" id="mobileControls">
+                <div class="mobile-row">
+                    <button class="mobile-btn" id="rotateBtn">↻</button>
+                </div>
+                <div class="mobile-row">
+                    <button class="mobile-btn" id="leftBtn">←</button>
+                    <button class="mobile-btn" id="downBtn">↓</button>
+                    <button class="mobile-btn" id="rightBtn">→</button>
+                </div>
+            </div>
+
+            <footer class="game-footer">
+                <p>© 2025 Retro Tetris | Made with ❤️ by Claude</p>
+            </footer>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</body>
+</html>

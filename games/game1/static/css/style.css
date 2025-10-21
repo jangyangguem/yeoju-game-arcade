@@ -1,0 +1,339 @@
+/* 80년대 레트로 스타일 테트리스 */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background: linear-gradient(135deg, #1a0033 0%, #2d0052 50%, #1a0033 100%);
+    background-attachment: fixed;
+    color: #00ff00;
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.game-wrapper {
+    width: 100%;
+    max-width: 1200px;
+}
+
+/* 헤더 스타일 */
+.game-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.neon-title {
+    font-size: 4rem;
+    font-weight: bold;
+    color: #ff00ff;
+    text-shadow: 
+        0 0 10px #ff00ff,
+        0 0 20px #ff00ff,
+        0 0 30px #ff00ff,
+        0 0 40px #ff00ff,
+        0 0 70px #ff00ff,
+        0 0 80px #ff00ff,
+        0 0 100px #ff00ff;
+    animation: neonPulse 1.5s ease-in-out infinite alternate;
+    letter-spacing: 0.2em;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+    letter-spacing: 0.3em;
+    margin-top: 10px;
+}
+
+@keyframes neonPulse {
+    from {
+        text-shadow: 
+            0 0 10px #ff00ff,
+            0 0 20px #ff00ff,
+            0 0 30px #ff00ff,
+            0 0 40px #ff00ff;
+    }
+    to {
+        text-shadow: 
+            0 0 20px #ff00ff,
+            0 0 30px #ff00ff,
+            0 0 40px #ff00ff,
+            0 0 50px #ff00ff,
+            0 0 70px #ff00ff;
+    }
+}
+
+/* 게임 컨테이너 */
+.game-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+/* 사이드 패널 */
+.side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.info-box {
+    background: rgba(0, 0, 0, 0.8);
+    border: 3px solid #00ff00;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 
+        0 0 20px rgba(0, 255, 0, 0.5),
+        inset 0 0 10px rgba(0, 255, 0, 0.2);
+    min-width: 180px;
+}
+
+.info-box h3 {
+    font-size: 1.2rem;
+    color: #00ffff;
+    text-align: center;
+    margin-bottom: 10px;
+    text-shadow: 0 0 10px #00ffff;
+}
+
+.score-value,
+.level-value,
+.lines-value,
+.highscore-value {
+    font-size: 2rem;
+    color: #ff00ff;
+    text-align: center;
+    text-shadow: 0 0 10px #ff00ff;
+    font-weight: bold;
+}
+
+/* 게임 보드 */
+.game-board-container {
+    position: relative;
+}
+
+#gameCanvas {
+    background: #000000;
+    border: 5px solid #ff00ff;
+    border-radius: 10px;
+    box-shadow: 
+        0 0 30px rgba(255, 0, 255, 0.8),
+        inset 0 0 20px rgba(255, 0, 255, 0.3);
+    display: block;
+}
+
+/* 게임 오버레이 */
+.game-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    z-index: 10;
+}
+
+.game-overlay.hidden {
+    display: none;
+}
+
+.overlay-content {
+    text-align: center;
+    padding: 30px;
+}
+
+#overlayTitle {
+    font-size: 2rem;
+    color: #00ff00;
+    text-shadow: 0 0 20px #00ff00;
+    margin-bottom: 20px;
+    animation: blink 1s infinite;
+}
+
+#overlayMessage {
+    font-size: 1.2rem;
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff;
+    line-height: 1.8;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.5; }
+}
+
+/* 다음 블록 캔버스 */
+#nextCanvas {
+    background: #000000;
+    border: 2px solid #00ffff;
+    border-radius: 5px;
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+}
+
+/* 컨트롤 정보 */
+.controls-info {
+    background: rgba(0, 0, 0, 0.8);
+    border: 3px solid #00ff00;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+}
+
+.controls-info h3 {
+    font-size: 1.2rem;
+    color: #00ffff;
+    text-align: center;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px #00ffff;
+}
+
+.control-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    color: #ff00ff;
+    font-size: 0.9rem;
+}
+
+.control-item span:first-child {
+    font-weight: bold;
+    color: #00ff00;
+}
+
+/* 모바일 컨트롤 */
+.mobile-controls {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+    align-items: center;
+}
+
+.mobile-row {
+    display: flex;
+    gap: 10px;
+}
+
+.mobile-btn {
+    width: 70px;
+    height: 70px;
+    font-size: 2rem;
+    background: rgba(0, 0, 0, 0.8);
+    border: 3px solid #00ff00;
+    border-radius: 10px;
+    color: #00ff00;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+    transition: all 0.2s;
+    touch-action: manipulation;
+}
+
+.mobile-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 0 25px rgba(0, 255, 0, 0.8);
+}
+
+/* 푸터 */
+.game-footer {
+    text-align: center;
+    margin-top: 30px;
+    color: #00ffff;
+    font-size: 0.9rem;
+    text-shadow: 0 0 5px #00ffff;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1024px) {
+    .game-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .side-panel {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .info-box {
+        min-width: 140px;
+    }
+}
+
+@media (max-width: 768px) {
+    .neon-title {
+        font-size: 3rem;
+    }
+    
+    .subtitle {
+        font-size: 1rem;
+    }
+    
+    #gameCanvas {
+        width: 250px !important;
+        height: 500px !important;
+    }
+    
+    .mobile-controls {
+        display: flex;
+    }
+    
+    .info-box {
+        padding: 10px;
+        min-width: 120px;
+    }
+    
+    .info-box h3 {
+        font-size: 1rem;
+    }
+    
+    .score-value,
+    .level-value,
+    .lines-value,
+    .highscore-value {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .neon-title {
+        font-size: 2rem;
+    }
+    
+    #gameCanvas {
+        width: 200px !important;
+        height: 400px !important;
+    }
+    
+    .mobile-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+    
+    .info-box {
+        min-width: 100px;
+        padding: 8px;
+    }
+}
