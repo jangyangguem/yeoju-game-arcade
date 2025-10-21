@@ -24,13 +24,6 @@ class TetrisGame {
         this.dropInterval = 1000;
         this.lastDropTime = 0;
         
-        // 현재 블록과 다음 블록
-        this.currentPiece = null;
-        this.nextPiece = this.createPiece();
-        
-        // 파티클 배열
-        this.particles = [];
-        
         // 테트로미노 정의
         this.tetrominoes = {
             'I': {
@@ -62,6 +55,13 @@ class TetrisGame {
                 color: '#ff8800'
             }
         };
+        
+        // 현재 블록과 다음 블록
+        this.currentPiece = null;
+        this.nextPiece = this.createPiece();
+        
+        // 파티클 배열
+        this.particles = [];
         
         this.init();
     }
