@@ -10,8 +10,8 @@ const games = [
     },
     {
         id: 2,
-        title: '게임 제목 2',
-        student: '학생 이름',
+        title: '체스',
+        student: '이호진',
         description: '게임에 대한 간단한 설명이 들어갑니다.',
         folder: 'game2'
     },
