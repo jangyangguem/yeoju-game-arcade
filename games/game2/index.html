@@ -1,1 +1,591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>체스 게임</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
 
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const Clock = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+        );
+
+        const ChessGame = () => {
+            const [board, setBoard] = useState([]);
+            const [selectedSquare, setSelectedSquare] = useState(null);
+            const [currentTurn, setCurrentTurn] = useState('white');
+            const [validMoves, setValidMoves] = useState([]);
+            const [check, setCheck] = useState(null);
+            const [gameOver, setGameOver] = useState(null);
+            const [moveHistory, setMoveHistory] = useState([]);
+            const [castlingRights, setCastlingRights] = useState({
+                white: { kingSide: true, queenSide: true },
+                black: { kingSide: true, queenSide: true }
+            });
+            
+            const [bulletMode, setBulletMode] = useState(false);
+            const [whiteTime, setWhiteTime] = useState(30);
+            const [blackTime, setBlackTime] = useState(30);
+            const [isGameStarted, setIsGameStarted] = useState(false);
+            const timerRef = useRef(null);
+
+            const pieces = {
+                white: { king: '♔', queen: '♕', rook: '♖', bishop: '♗', knight: '♘', pawn: '♙' },
+                black: { king: '♚', queen: '♛', rook: '♜', bishop: '♝', knight: '♞', pawn: '♟' }
+            };
+
+            useEffect(() => {
+                initializeBoard();
+            }, []);
+
+            useEffect(() => {
+                if (bulletMode && isGameStarted && !gameOver) {
+                    timerRef.current = setInterval(() => {
+                        if (currentTurn === 'white') {
+                            setWhiteTime(prev => {
+                                if (prev <= 0.1) {
+                                    setGameOver('black');
+                                    clearInterval(timerRef.current);
+                                    return 0;
+                                }
+                                return prev - 0.1;
+                            });
+                        } else {
+                            setBlackTime(prev => {
+                                if (prev <= 0.1) {
+                                    setGameOver('white');
+                                    clearInterval(timerRef.current);
+                                    return 0;
+                                }
+                                return prev - 0.1;
+                            });
+                        }
+                    }, 100);
+
+                    return () => {
+                        if (timerRef.current) {
+                            clearInterval(timerRef.current);
+                        }
+                    };
+                }
+            }, [bulletMode, isGameStarted, currentTurn, gameOver]);
+
+            const initializeBoard = () => {
+                const newBoard = Array(8).fill(null).map(() => Array(8).fill(null));
+                
+                newBoard[7] = [
+                    { type: 'rook', color: 'white' },
+                    { type: 'knight', color: 'white' },
+                    { type: 'bishop', color: 'white' },
+                    { type: 'queen', color: 'white' },
+                    { type: 'king', color: 'white' },
+                    { type: 'bishop', color: 'white' },
+                    { type: 'knight', color: 'white' },
+                    { type: 'rook', color: 'white' }
+                ];
+                newBoard[6] = Array(8).fill(null).map(() => ({ type: 'pawn', color: 'white' }));
+                
+                newBoard[0] = [
+                    { type: 'rook', color: 'black' },
+                    { type: 'knight', color: 'black' },
+                    { type: 'bishop', color: 'black' },
+                    { type: 'queen', color: 'black' },
+                    { type: 'king', color: 'black' },
+                    { type: 'bishop', color: 'black' },
+                    { type: 'knight', color: 'black' },
+                    { type: 'rook', color: 'black' }
+                ];
+                newBoard[1] = Array(8).fill(null).map(() => ({ type: 'pawn', color: 'black' }));
+                
+                setBoard(newBoard);
+                setCurrentTurn('white');
+                setSelectedSquare(null);
+                setValidMoves([]);
+                setCheck(null);
+                setGameOver(null);
+                setMoveHistory([]);
+                setCastlingRights({
+                    white: { kingSide: true, queenSide: true },
+                    black: { kingSide: true, queenSide: true }
+                });
+                setWhiteTime(30);
+                setBlackTime(30);
+                setIsGameStarted(false);
+                if (timerRef.current) {
+                    clearInterval(timerRef.current);
+                }
+            };
+
+            const formatTime = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                const decisecs = Math.floor((seconds % 1) * 10);
+                return `${mins}:${secs.toString().padStart(2, '0')}.${decisecs}`;
+            };
+
+            const isValidMove = (fromRow, fromCol, toRow, toCol, piece, testBoard = board) => {
+                if (toRow < 0 || toRow > 7 || toCol < 0 || toCol > 7) return false;
+                
+                const targetPiece = testBoard[toRow][toCol];
+                if (targetPiece && targetPiece.color === piece.color) return false;
+
+                const rowDiff = toRow - fromRow;
+                const colDiff = toCol - fromCol;
+                const absRowDiff = Math.abs(rowDiff);
+                const absColDiff = Math.abs(colDiff);
+
+                switch (piece.type) {
+                    case 'pawn':
+                        const direction = piece.color === 'white' ? -1 : 1;
+                        const startRow = piece.color === 'white' ? 6 : 1;
+                        
+                        if (colDiff === 0) {
+                            if (rowDiff === direction && !targetPiece) return true;
+                            if (fromRow === startRow && rowDiff === 2 * direction && !targetPiece && !testBoard[fromRow + direction][fromCol]) return true;
+                        } else if (absColDiff === 1 && rowDiff === direction) {
+                            if (targetPiece && targetPiece.color !== piece.color) return true;
+                            if (canEnPassant(fromRow, fromCol, toRow, toCol, piece.color)) return true;
+                        }
+                        return false;
+
+                    case 'knight':
+                        return (absRowDiff === 2 && absColDiff === 1) || (absRowDiff === 1 && absColDiff === 2);
+
+                    case 'bishop':
+                        if (absRowDiff !== absColDiff) return false;
+                        return isPathClear(fromRow, fromCol, toRow, toCol, testBoard);
+
+                    case 'rook':
+                        if (rowDiff !== 0 && colDiff !== 0) return false;
+                        return isPathClear(fromRow, fromCol, toRow, toCol, testBoard);
+
+                    case 'queen':
+                        if (rowDiff !== 0 && colDiff !== 0 && absRowDiff !== absColDiff) return false;
+                        return isPathClear(fromRow, fromCol, toRow, toCol, testBoard);
+
+                    case 'king':
+                        if (absRowDiff <= 1 && absColDiff <= 1) return true;
+                        if (absRowDiff === 0 && absColDiff === 2) {
+                            return canCastle(fromRow, fromCol, toRow, toCol, piece.color, testBoard);
+                        }
+                        return false;
+
+                    default:
+                        return false;
+                }
+            };
+
+            const canEnPassant = (fromRow, fromCol, toRow, toCol, color) => {
+                if (moveHistory.length === 0) return false;
+                
+                const lastMove = moveHistory[moveHistory.length - 1];
+                const expectedRow = color === 'white' ? 3 : 4;
+                
+                if (fromRow !== expectedRow) return false;
+                
+                const lastPiece = lastMove.piece;
+                if (lastPiece.type !== 'pawn' || lastPiece.color === color) return false;
+                
+                const lastFromRow = lastMove.from.row;
+                const lastToRow = lastMove.to.row;
+                const lastToCol = lastMove.to.col;
+                
+                if (Math.abs(lastFromRow - lastToRow) !== 2) return false;
+                if (lastToRow !== fromRow || lastToCol !== toCol) return false;
+                
+                return true;
+            };
+
+            const canCastle = (fromRow, fromCol, toRow, toCol, color, testBoard) => {
+                const rights = castlingRights[color];
+                const row = color === 'white' ? 7 : 0;
+                
+                if (fromRow !== row || fromCol !== 4) return false;
+                if (isKingInCheck(color, testBoard)) return false;
+                
+                if (toCol === 6) {
+                    if (!rights.kingSide) return false;
+                    if (testBoard[row][5] || testBoard[row][6]) return false;
+                    if (!testBoard[row][7] || testBoard[row][7].type !== 'rook') return false;
+                    
+                    for (let col = 4; col <= 6; col++) {
+                        const tempBoard = testBoard.map(r => [...r]);
+                        tempBoard[row][col] = tempBoard[row][4];
+                        tempBoard[row][4] = null;
+                        if (isKingInCheck(color, tempBoard)) return false;
+                    }
+                    return true;
+                }
+                
+                if (toCol === 2) {
+                    if (!rights.queenSide) return false;
+                    if (testBoard[row][1] || testBoard[row][2] || testBoard[row][3]) return false;
+                    if (!testBoard[row][0] || testBoard[row][0].type !== 'rook') return false;
+                    
+                    for (let col = 4; col >= 2; col--) {
+                        const tempBoard = testBoard.map(r => [...r]);
+                        tempBoard[row][col] = tempBoard[row][4];
+                        tempBoard[row][4] = null;
+                        if (isKingInCheck(color, tempBoard)) return false;
+                    }
+                    return true;
+                }
+                
+                return false;
+            };
+
+            const isPathClear = (fromRow, fromCol, toRow, toCol, testBoard) => {
+                const rowStep = toRow > fromRow ? 1 : toRow < fromRow ? -1 : 0;
+                const colStep = toCol > fromCol ? 1 : toCol < fromCol ? -1 : 0;
+                
+                let currentRow = fromRow + rowStep;
+                let currentCol = fromCol + colStep;
+                
+                while (currentRow !== toRow || currentCol !== toCol) {
+                    if (testBoard[currentRow][currentCol]) return false;
+                    currentRow += rowStep;
+                    currentCol += colStep;
+                }
+                
+                return true;
+            };
+
+            const findKing = (color, testBoard = board) => {
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = testBoard[row][col];
+                        if (piece && piece.type === 'king' && piece.color === color) {
+                            return { row, col };
+                        }
+                    }
+                }
+                return null;
+            };
+
+            const isKingInCheck = (color, testBoard = board) => {
+                const kingPos = findKing(color, testBoard);
+                if (!kingPos) return false;
+
+                const oppositeColor = color === 'white' ? 'black' : 'white';
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = testBoard[row][col];
+                        if (piece && piece.color === oppositeColor) {
+                            if (isValidMove(row, col, kingPos.row, kingPos.col, piece, testBoard)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            };
+
+            const wouldMoveResultInCheck = (fromRow, fromCol, toRow, toCol) => {
+                const testBoard = board.map(row => [...row]);
+                const piece = testBoard[fromRow][fromCol];
+                
+                if (piece.type === 'king' && Math.abs(toCol - fromCol) === 2) {
+                    return false;
+                }
+                
+                if (piece.type === 'pawn' && Math.abs(toCol - fromCol) === 1 && !testBoard[toRow][toCol]) {
+                    if (canEnPassant(fromRow, fromCol, toRow, toCol, piece.color)) {
+                        testBoard[fromRow][toCol] = null;
+                    }
+                }
+                
+                testBoard[toRow][toCol] = testBoard[fromRow][fromCol];
+                testBoard[fromRow][fromCol] = null;
+                
+                return isKingInCheck(currentTurn, testBoard);
+            };
+
+            const getValidMoves = (row, col) => {
+                const piece = board[row][col];
+                if (!piece || piece.color !== currentTurn) return [];
+
+                const moves = [];
+                for (let toRow = 0; toRow < 8; toRow++) {
+                    for (let toCol = 0; toCol < 8; toCol++) {
+                        if (isValidMove(row, col, toRow, toCol, piece)) {
+                            if (!wouldMoveResultInCheck(row, col, toRow, toCol)) {
+                                moves.push({ row: toRow, col: toCol });
+                            }
+                        }
+                    }
+                }
+                return moves;
+            };
+
+            const hasValidMoves = (color, testBoard = board) => {
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = testBoard[row][col];
+                        if (piece && piece.color === color) {
+                            for (let toRow = 0; toRow < 8; toRow++) {
+                                for (let toCol = 0; toCol < 8; toCol++) {
+                                    if (isValidMove(row, col, toRow, toCol, piece, testBoard)) {
+                                        const tempBoard = testBoard.map(r => [...r]);
+                                        const movingPiece = tempBoard[row][col];
+                                        
+                                        if (movingPiece.type === 'pawn' && Math.abs(toCol - col) === 1 && !tempBoard[toRow][toCol]) {
+                                            if (canEnPassant(row, col, toRow, toCol, movingPiece.color)) {
+                                                tempBoard[row][toCol] = null;
+                                            }
+                                        }
+                                        
+                                        tempBoard[toRow][toCol] = tempBoard[row][col];
+                                        tempBoard[row][col] = null;
+                                        if (!isKingInCheck(color, tempBoard)) {
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return false;
+            };
+
+            const handleSquareClick = (row, col) => {
+                if (gameOver) return;
+
+                if (bulletMode && !isGameStarted) {
+                    setIsGameStarted(true);
+                }
+
+                const piece = board[row][col];
+                
+                if (selectedSquare) {
+                    const isValidMoveAttempt = validMoves.some(move => move.row === row && move.col === col);
+                    
+                    if (isValidMoveAttempt) {
+                        const newBoard = board.map(r => [...r]);
+                        const movingPiece = newBoard[selectedSquare.row][selectedSquare.col];
+                        const capturedPiece = newBoard[row][col];
+                        
+                        let enPassantCapture = false;
+                        if (movingPiece.type === 'pawn' && Math.abs(col - selectedSquare.col) === 1 && !capturedPiece) {
+                            if (canEnPassant(selectedSquare.row, selectedSquare.col, row, col, movingPiece.color)) {
+                                newBoard[selectedSquare.row][col] = null;
+                                enPassantCapture = true;
+                            }
+                        }
+                        
+                        if (movingPiece.type === 'king' && Math.abs(col - selectedSquare.col) === 2) {
+                            const rookCol = col === 6 ? 7 : 0;
+                            const newRookCol = col === 6 ? 5 : 3;
+                            newBoard[row][newRookCol] = newBoard[row][rookCol];
+                            newBoard[row][rookCol] = null;
+                        }
+                        
+                        newBoard[row][col] = movingPiece;
+                        newBoard[selectedSquare.row][selectedSquare.col] = null;
+                        
+                        const newMoveHistory = [...moveHistory, {
+                            piece: { ...movingPiece },
+                            from: { row: selectedSquare.row, col: selectedSquare.col },
+                            to: { row, col },
+                            captured: capturedPiece || (enPassantCapture ? { type: 'pawn', color: currentTurn === 'white' ? 'black' : 'white' } : null)
+                        }];
+                        
+                        const newCastlingRights = { ...castlingRights };
+                        if (movingPiece.type === 'king') {
+                            newCastlingRights[currentTurn] = { kingSide: false, queenSide: false };
+                        } else if (movingPiece.type === 'rook') {
+                            const kingRow = currentTurn === 'white' ? 7 : 0;
+                            if (selectedSquare.row === kingRow) {
+                                if (selectedSquare.col === 0) {
+                                    newCastlingRights[currentTurn].queenSide = false;
+                                } else if (selectedSquare.col === 7) {
+                                    newCastlingRights[currentTurn].kingSide = false;
+                                }
+                            }
+                        }
+                        
+                        if (bulletMode && isGameStarted) {
+                            if (currentTurn === 'white') {
+                                setWhiteTime(prev => prev + 5);
+                            } else {
+                                setBlackTime(prev => prev + 5);
+                            }
+                        }
+                        
+                        setBoard(newBoard);
+                        setMoveHistory(newMoveHistory);
+                        setCastlingRights(newCastlingRights);
+                        setSelectedSquare(null);
+                        setValidMoves([]);
+                        
+                        const nextTurn = currentTurn === 'white' ? 'black' : 'white';
+                        setCurrentTurn(nextTurn);
+                        
+                        setTimeout(() => {
+                            if (isKingInCheck(nextTurn, newBoard)) {
+                                setCheck(nextTurn);
+                                if (!hasValidMoves(nextTurn, newBoard)) {
+                                    setGameOver(currentTurn);
+                                }
+                            } else {
+                                setCheck(null);
+                                if (!hasValidMoves(nextTurn, newBoard)) {
+                                    setGameOver('stalemate');
+                                }
+                            }
+                        }, 0);
+                    } else if (piece && piece.color === currentTurn) {
+                        setSelectedSquare({ row, col });
+                        setValidMoves(getValidMoves(row, col));
+                    } else {
+                        setSelectedSquare(null);
+                        setValidMoves([]);
+                    }
+                } else if (piece && piece.color === currentTurn) {
+                    setSelectedSquare({ row, col });
+                    setValidMoves(getValidMoves(row, col));
+                }
+            };
+
+            const isSquareSelected = (row, col) => {
+                return selectedSquare && selectedSquare.row === row && selectedSquare.col === col;
+            };
+
+            const isValidMoveSquare = (row, col) => {
+                return validMoves.some(move => move.row === row && move.col === col);
+            };
+
+            const toggleBulletMode = () => {
+                setBulletMode(!bulletMode);
+                initializeBoard();
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center p-4">
+                    <div className="bg-slate-700 rounded-xl shadow-2xl p-6 max-w-2xl">
+                        <div className="text-center mb-6">
+                            <h1 className="text-4xl font-bold text-white mb-2">체스 게임</h1>
+                            
+                            <div className="flex items-center justify-center gap-3 mb-4">
+                                <Clock size={20} className="text-yellow-400" />
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={bulletMode}
+                                        onChange={toggleBulletMode}
+                                        className="w-5 h-5 cursor-pointer"
+                                    />
+                                    <span className="text-white font-semibold">블릿 모드</span>
+                                </label>
+                            </div>
+
+                            {bulletMode && (
+                                <div className="flex items-center justify-center gap-6 mb-4">
+                                    <div className={`px-6 py-3 rounded-lg font-mono text-2xl font-bold ${
+                                        currentTurn === 'white' ? 'bg-white text-black ring-4 ring-blue-400' : 'bg-gray-600 text-white'
+                                    } ${whiteTime < 10 ? 'animate-pulse text-red-600' : ''}`}>
+                                        ⚪ {formatTime(whiteTime)}
+                                    </div>
+                                    <div className={`px-6 py-3 rounded-lg font-mono text-2xl font-bold ${
+                                        currentTurn === 'black' ? 'bg-gray-800 text-white ring-4 ring-blue-400' : 'bg-gray-600 text-gray-400'
+                                    } ${blackTime < 10 ? 'animate-pulse text-red-400' : ''}`}>
+                                        ⚫ {formatTime(blackTime)}
+                                    </div>
+                                </div>
+                            )}
+
+                            {!bulletMode && (
+                                <div className="flex items-center justify-center gap-4 text-lg">
+                                    <div className={`px-4 py-2 rounded-lg ${currentTurn === 'white' ? 'bg-white text-black' : 'bg-gray-600 text-gray-300'}`}>
+                                        흰색 차례
+                                    </div>
+                                    <div className={`px-4 py-2 rounded-lg ${currentTurn === 'black' ? 'bg-gray-800 text-white' : 'bg-gray-600 text-gray-400'}`}>
+                                        검은색 차례
+                                    </div>
+                                </div>
+                            )}
+
+                            {check && (
+                                <div className="mt-3 text-red-400 font-bold text-xl">
+                                    {check === 'white' ? '흰색' : '검은색'} 킹이 체크 상태입니다!
+                                </div>
+                            )}
+                            {gameOver && (
+                                <div className="mt-3 text-yellow-400 font-bold text-xl">
+                                    {gameOver === 'stalemate' ? '무승부!' : `${gameOver === 'white' ? '흰색' : '검은색'} 승리!`}
+                                    {bulletMode && gameOver !== 'stalemate' && ' (시간 초과)'}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-slate-600 p-4 rounded-lg inline-block">
+                            <div className="grid grid-cols-8 gap-0 border-4 border-slate-800">
+                                {board.map((row, rowIndex) => (
+                                    row.map((piece, colIndex) => {
+                                        const isLight = (rowIndex + colIndex) % 2 === 0;
+                                        const isSelected = isSquareSelected(rowIndex, colIndex);
+                                        const isValidMove = isValidMoveSquare(rowIndex, colIndex);
+                                        
+                                        return (
+                                            <div
+                                                key={`${rowIndex}-${colIndex}`}
+                                                onClick={() => handleSquareClick(rowIndex, colIndex)}
+                                                className={`
+                                                    w-16 h-16 flex items-center justify-center text-5xl cursor-pointer
+                                                    transition-all duration-200
+                                                    ${isLight ? 'bg-amber-100' : 'bg-amber-700'}
+                                                    ${isSelected ? 'ring-4 ring-blue-500' : ''}
+                                                    ${isValidMove ? 'ring-4 ring-green-400' : ''}
+                                                    hover:opacity-80
+                                                `}
+                                            >
+                                                {piece && pieces[piece.color][piece.type]}
+                                                {isValidMove && !piece && (
+                                                    <div className="w-4 h-4 bg-green-500 rounded-full opacity-60"></div>
+                                                )}
+                                            </div>
+                                        );
+                                    })
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="mt-6 text-center">
+                            <button
+                                onClick={initializeBoard}
+                                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors"
+                            >
+                                새 게임 시작
+                            </button>
+                        </div>
+
+                        <div className="mt-4 text-gray-300 text-sm text-center">
+                            <p>말을 클릭하여 선택하고, 이동 가능한 위치(초록색)를 클릭하세요</p>
+                            <p className="mt-2 text-xs text-gray-400">통상적인 체스 규칙이 모두 적용됩니다</p>
+                            <p className="mt-1 text-xs text-gray-500">1220 이호진</p>
+                            {bulletMode && (
+                                <p className="mt-2 text-xs text-yellow-400">블릿 모드: 시작 30초 + 매 수마다 5초 추가</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<ChessGame />, document.getElementById('root'));
+    </script>
+</body>
+</html>
